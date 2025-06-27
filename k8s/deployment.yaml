@@ -1,0 +1,41 @@
+# k8s/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: text-classifier
+  labels:
+    app: text-classifier
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: text-classifier
+  template:
+    metadata:
+      labels:
+        app: text-classifier
+    spec:
+      containers:
+        - name: text-classifier
+          image: text-classifier/text-classifier:${VERSION}
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20

@@ -1,4 +1,4 @@
-name: Build Docker Image
+name: Build and Deploy Docker Image
 
 on:
   push:
@@ -11,9 +11,11 @@ env:
   IMAGE_NAME: text-classifier
   AWS_REGION: us-east-1
   ECR_REPOSITORY: text-classifier
+  EKS_CLUSTER_NAME: text-classifier-cluster
+  NAMESPACE: text-classifier
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -38,28 +40,50 @@ jobs:
       id: get_version
       run: echo "VERSION=$(cz version --short)" >> $GITHUB_ENV
 
-    - name: Build Docker image with version tag
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push image to ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ env.VERSION }}
       run: |
-        echo "Building Docker image with tag $VERSION"
-        docker build -t ${{ env.IMAGE_NAME }}:$VERSION .
+        docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG
 
-    # Optional: upload image to AWS -> Need to be implemented with secrets and aws-actions
-    # - name: Configure AWS credentials
-    #   uses: aws-actions/configure-aws-credentials@v2
-    #   with:
-    #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-    #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-    #     aws-region: ${{ env.AWS_REGION }}
+    - name: Install kubectl
+      run: |
+        curl -LO "https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
 
-    # - name: Login to Amazon ECR
-    #   id: login-ecr
-    #   uses: aws-actions/amazon-ecr-login@v1
+    - name: Update kubeconfig
+      run: |
+        aws eks --region ${{ env.AWS_REGION }} update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }}
 
-    # - name: Build, tag, and push image to ECR
-    #   env:
-    #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-    #     ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
-    #     IMAGE_TAG: $VERSION
-    #   run: |
-    #     docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-    #     docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+    - name: Render Kubernetes manifests with VERSION only
+      env:
+        VERSION: ${{ env.VERSION }}
+      run: |
+        mkdir -p k8s-rendered
+        for f in k8s/*.yaml; do
+          envsubst '${VERSION}' < "$f" > "k8s-rendered/$(basename "$f")"
+        done
+
+    - name: Apply Kubernetes manifests
+      run: |
+        kubectl apply -f k8s-rendered/namespace.yaml
+        kubectl apply -f k8s-rendered/deployment.yaml
+        kubectl apply -f k8s-rendered/service.yaml
+
+    - name: Wait for rollout to complete
+      run: |
+        kubectl rollout status deployment/text-classifier --namespace ${{ env.NAMESPACE }}
