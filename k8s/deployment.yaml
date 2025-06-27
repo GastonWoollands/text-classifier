@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: text-classifier
+  namespace: text-classifier
   labels:
     app: text-classifier
 spec:
@@ -39,3 +40,19 @@ spec:
               port: 8080
             initialDelaySeconds: 15
             periodSeconds: 20
+
+---
+
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: text-classifier-hpa
+  namespace: text-classifier
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: text-classifier
+  minReplicas: 1 # Minimum number of replicas
+  maxReplicas: 10 # Maximum number of replicas
+  targetCPUUtilizationPercentage: 80 # Target CPU utilization percentage
