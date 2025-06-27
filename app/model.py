@@ -4,13 +4,15 @@ import torch.nn.functional as F
 import logging
 from typing import Optional
 from app.schemas import TextOutput
+from app.config import MODEL_NAME, MAX_LENGTH, TRUNCATION, LOG_LEVEL
 
-MODEL_NAME = "distilbert-base-uncased-finetuned-sst-2-english"
+# Initialize logging
+logging.basicConfig(level=getattr(logging, LOG_LEVEL))
+logger = logging.getLogger(__name__)
+
+# Load model and tokenizer
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 def predict_sentiment(
     text: str, 
@@ -27,10 +29,6 @@ def predict_sentiment(
 
     Returns: 
         TextOutput: Object containing label and confidence score
-        
-    Raises:
-        ValueError: If text is empty or None
-        Exception: If model prediction fails
     """
     # Input validation
     if not text or not text.strip():
@@ -45,7 +43,12 @@ def predict_sentiment(
     logger.info(f"Predicting sentiment for text: {text[:100]}{'...' if len(text) > 100 else ''}")
     
     try:
-        inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
+        inputs = tokenizer(
+            text, 
+            return_tensors="pt", 
+            truncation=TRUNCATION, 
+            max_length=MAX_LENGTH
+        )
 
         with torch.no_grad():
             logits = model(**inputs).logits

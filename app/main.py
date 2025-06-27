@@ -6,11 +6,12 @@ from app.schemas import (
     HealthResponse, 
     SentimentResponse
 )
+from app.config import API_TITLE, API_DESCRIPTION, API_VERSION, HEALTH_STATUS
 
 app = FastAPI(
-    title="Text Sentiment Classifier API",
-    description="A FastAPI service for sentiment analysis using DistilBERT",
-    version="1.0.0"
+    title=API_TITLE,
+    description=API_DESCRIPTION,
+    version=API_VERSION
 )
 
 @app.get("/health", response_model=HealthResponse)
@@ -19,7 +20,7 @@ def health_check():
     Health check endpoint to verify the service is running and the model is loaded.
     """
     return HealthResponse(
-        status="healthy"
+        status=HEALTH_STATUS
     )
 
 @app.post("/predict_sentiment", response_model=SentimentResponse)
