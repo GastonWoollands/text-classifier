@@ -1,0 +1,65 @@
+name: Build Docker Image
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+env:
+  PYTHON_VERSION: 3.10
+  IMAGE_NAME: text-classifier
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: text-classifier
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Poetry, export plugin and Commitizen
+      run: |
+        python -m pip install --upgrade pip
+        pip install poetry poetry-plugin-export commitizen
+
+    - name: Export requirements.txt
+      run: |
+        poetry export -f requirements.txt --without-hashes -o requirements.txt
+
+    - name: Get project version from Commitizen
+      id: get_version
+      run: echo "VERSION=$(cz version --short)" >> $GITHUB_ENV
+
+    - name: Build Docker image with version tag
+      run: |
+        echo "Building Docker image with tag $VERSION"
+        docker build -t ${{ env.IMAGE_NAME }}:$VERSION .
+
+    # Optional: upload image to AWS -> Need to be implemented with secrets and aws-actions
+    # - name: Configure AWS credentials
+    #   uses: aws-actions/configure-aws-credentials@v2
+    #   with:
+    #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    #     aws-region: ${{ env.AWS_REGION }}
+
+    # - name: Login to Amazon ECR
+    #   id: login-ecr
+    #   uses: aws-actions/amazon-ecr-login@v1
+
+    # - name: Build, tag, and push image to ECR
+    #   env:
+    #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+    #     ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+    #     IMAGE_TAG: $VERSION
+    #   run: |
+    #     docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+    #     docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
