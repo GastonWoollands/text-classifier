@@ -7,7 +7,7 @@ on:
   pull_request:
 
 env:
-  PYTHON_VERSION: 3.10
+  PYTHON_VERSION: "3.10"
   AWS_REGION: us-east-1
   ECR_REPOSITORY: text-classifier
   EKS_CLUSTER_NAME: text-classifier-cluster
