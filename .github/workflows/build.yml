@@ -37,7 +37,7 @@ jobs:
 
     - name: Get project version from Commitizen
       id: get_version
-      run: echo "VERSION=$(cz version --short)" >> $GITHUB_ENV
+      run: echo "VERSION=$(cz version --project)" >> $GITHUB_ENV
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
