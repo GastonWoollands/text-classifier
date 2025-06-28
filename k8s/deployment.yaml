@@ -23,10 +23,10 @@ spec:
             - containerPort: 8080
           resources:
             requests:
-              memory: "1Gi"
-              cpu: "500m"
+              memory: "500Mi" # TODO: Once the pod is running validate the memory usage
+              cpu: "400m"
             limits:
-              memory: "2Gi"
+              memory: "2Gi" # TODO: Once the pod is running validate the memory usage
               cpu: "1"
           readinessProbe:
             httpGet:
@@ -43,7 +43,7 @@ spec:
 
 ---
 
-apiVersion: autoscaling/v1
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: text-classifier-hpa
@@ -53,6 +53,18 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: text-classifier
-  minReplicas: 1 # Minimum number of replicas
-  maxReplicas: 10 # Maximum number of replicas
-  targetCPUUtilizationPercentage: 80 # Target CPU utilization percentage
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80 # 80% CPU utilization
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80 # 75% memory utilization
