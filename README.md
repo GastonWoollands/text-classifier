@@ -132,14 +132,6 @@ docker stop text-classifier
 docker rm text-classifier
 ```
 
-### Kubernetes Deployment
-```bash
-# Apply manifests
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
-```
-
 ## Testing
 
 ```bash
