@@ -51,7 +51,7 @@ POST /predict_sentiment
 }
 ```
 
-##️ Architecture
+## Architecture
 
 ### Tech Stack
 - **Backend**: FastAPI (Python 3.10+)
@@ -164,3 +164,15 @@ poetry run pytest --cov=app
 - Configure backup and disaster recovery
 
 ## Project Structure
+
+### Key Files Description
+
+- **`app/main.py`**: FastAPI API with health check and sentiment analysis endpoints
+- **`app/model.py`**: Sentiment analysis model loading and prediction logic
+- **`app/schemas.py`**: Pydantic models for request/response validation
+- **`app/config.py`**: Configuration constants and settings
+- **`k8s/deployment.yaml`**: Kubernetes deployment
+- **`k8s/service.yaml`**: Service configuration
+- **`.github/workflows/build.yml`**: CI/CD pipeline for automated deployment
+- **`Dockerfile`**: Multi-stage Docker build for production image
+- **`pyproject.toml`**: Poetry project configuration and dependencies
