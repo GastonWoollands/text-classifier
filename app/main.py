@@ -7,6 +7,7 @@ from app.schemas import (
     SentimentResponse
 )
 from app.config import API_TITLE, API_DESCRIPTION, API_VERSION, HEALTH_STATUS
+import asyncio
 
 app = FastAPI(
     title=API_TITLE,
@@ -24,7 +25,7 @@ def health_check():
     )
 
 @app.post("/predict_sentiment", response_model=SentimentResponse)
-def predict(
+async def predict(
     input: TextInput, 
     add_score: bool = Query(default=False, description="Include prediction score in response")
 ) -> SentimentResponse:
@@ -36,7 +37,7 @@ def predict(
         add_score: If True, returns both label and score. If False, returns only label.
     """
     try:
-        result = predict_sentiment(input.text)
+        result = await asyncio.to_thread(predict_sentiment, input.text)
         
         if add_score:
             return result
